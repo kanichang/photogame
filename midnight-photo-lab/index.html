@@ -30,7 +30,7 @@
         <aside class="sidebar">
           <section class="pixel-panel queue-panel"><h2>受付キュー <span id="queueCount">0 / 8</span></h2><div id="incomingQueue" class="film-list"></div><p id="nextArrival">次の来客を待っています…</p></section>
           <section class="pixel-panel upgrade-panel"><h2 id="selectedTitle">現像槽</h2><p id="selectedState"></p><p id="operationHelp" class="operation-help"></p><div id="upgradeButtons"></div><p id="buyReason" aria-live="polite"></p></section>
-          <section class="pixel-panel recent-panel"><h2>最近の一枚</h2><div id="recentPhoto"><p>最初の写真を待っています。</p></div></section>
+          <section class="pixel-panel recent-panel"><h2>最近の一枚</h2><div id="recentPhoto" aria-live="polite"><p>完成した写真はまだありません</p></div></section>
         </aside>
       </div>
       <section class="log-panel"><h2>夜の記録</h2><ol id="eventLog" aria-live="polite"></ol></section>
@@ -41,11 +41,12 @@
     <section id="settings" class="screen"><div class="settings-box"><h2>設定</h2><label class="toggle"><input id="soundToggle" type="checkbox"><span>効果音（初期設定はオフ）</span></label><label class="toggle"><input id="motionToggle" type="checkbox"><span>ゲーム内の動きを抑える</span></label><button id="saveNow">今すぐ保存</button><button id="resetSave" class="danger">セーブデータを削除して最初から始める</button><h3>ショートカット</h3><p><kbd>1</kbd>〜<kbd>6</kbd> 設備選択　<kbd>Space</kbd> 作業開始　<kbd>Esc</kbd> 閉じる</p></div></section>
   </main>
 
-  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="toast" aria-live="polite"></div>
+  <div id="photoNotifications" class="photo-notifications" aria-label="写真完成通知"></div>
   <div id="intervention" class="intervention" hidden><button id="interventionButton">☾ <span></span><small>クリックで介入</small></button></div>
   <div id="modal" class="modal" hidden><div class="modal-backdrop" data-close="true"></div><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button id="modalClose" aria-label="閉じる">×</button><h2 id="modalTitle"></h2><div id="modalBody"></div></div></div>
   <div id="workOverlay" class="work-overlay" hidden><div class="work-backdrop"></div><section class="work-card" role="dialog" aria-modal="true" aria-labelledby="workTitle"><button id="workClose" aria-label="閉じる">×</button><header><span id="workStep"></span><h2 id="workTitle"></h2><p id="workStory"></p></header><div id="workBody"></div><footer id="workKeys"></footer></section></div>
-  <div id="completion" class="completion" hidden><div class="completion-backdrop"></div><section id="completionCard" class="completion-card" role="dialog" aria-modal="true"><button id="completionClose" aria-label="閉じる">×</button><div id="completionBody"></div><small>クリック / Enter で閉じる</small></section></div>
+  <div id="completion" class="completion" hidden><div class="completion-backdrop" data-detail-close="true"></div><section id="completionCard" class="completion-card" role="dialog" aria-modal="true" aria-label="写真詳細"><button id="completionClose" aria-label="写真詳細を閉じる">×</button><div id="completionBody"></div></section></div>
   <script src="game.js"></script>
 </body>
 </html>
