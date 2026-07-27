@@ -3,188 +3,109 @@
 
   const SAVE_KEY = "midnight-photo-lab-save-v1";
   const STATION_DEFS = [
-    { id: "developer", name: "現像槽", time: 4000, auto: 40, speed: 18, capacity: 28 },
-    { id: "dryer", name: "乾燥機", time: 5000, auto: 70, speed: 28, capacity: 42 },
-    { id: "scanner", name: "スキャナー", time: 4000, auto: 110, speed: 42, capacity: 65 },
-    { id: "color", name: "色補正卓", time: 6000, auto: 170, speed: 62, capacity: 95 },
-    { id: "printer", name: "プリンター", time: 5000, auto: 250, speed: 90, capacity: 135 },
-    { id: "frame", name: "額装台", time: 7000, auto: 360, speed: 125, capacity: 190 }
+    { id: "developer", name: "現像槽", time: 4000, auto: 40, speed: 18, capacity: 28, help: "適正露出で写真を引き上げます。" },
+    { id: "dryer", name: "乾燥機", time: 4500, auto: 70, speed: 28, capacity: 42, help: "弱風と強風で湿度を保ちます。" },
+    { id: "scanner", name: "スキャナー", time: 4500, auto: 110, speed: 42, capacity: 65, help: "走査中にホコリを取り除きます。" },
+    { id: "color", name: "色補正卓", time: 6000, auto: 170, speed: 62, capacity: 95, help: "明るさと色温度を整えます。" },
+    { id: "printer", name: "プリンター", time: 3500, auto: 250, speed: 90, capacity: 135, help: "写真に合う印画紙を選びます。" },
+    { id: "frame", name: "額装台", time: 3500, auto: 360, speed: 125, capacity: 190, help: "写真を引き立てる額縁を選びます。" }
   ];
-  const THEMES = ["雨の駅", "月と鉄塔", "夜の海", "青い路地", "眠る猫", "ネオンの喫茶店", "湖面の月", "古い観覧車", "深夜の横断歩道", "花束と窓辺", "夜行列車", "雨上がりの屋上"];
-  const RARITIES = {
-    common: { label: "コモン", value: 12 }, uncommon: { label: "アンコモン", value: 22 },
-    rare: { label: "レア", value: 45 }, masterpiece: { label: "マスターピース", value: 100 }
+  const THEME_DATA = {
+    "雨の駅": { tags: ["雨", "駅", "夜景"], ideal: [38, 28], paper: ["warm", "glossy"], frame: "black" },
+    "月と鉄塔": { tags: ["月", "都市", "鉄塔"], ideal: [45, 30], paper: ["glossy"], frame: "black" },
+    "夜の海": { tags: ["海", "水面", "夜景"], ideal: [32, 18], paper: ["glossy"], frame: "silver" },
+    "青い路地": { tags: ["都市", "静かな風景"], ideal: [42, 25], paper: ["matte", "glossy"], frame: "black" },
+    "眠る猫": { tags: ["猫", "室内", "思い出"], ideal: [62, 65], paper: ["matte", "warm"], frame: "white" },
+    "ネオンの喫茶店": { tags: ["ネオン", "喫茶店", "暖色"], ideal: [55, 62], paper: ["glossy", "warm"], frame: "black" },
+    "湖面の月": { tags: ["湖", "月", "水面"], ideal: [40, 24], paper: ["glossy"], frame: "silver" },
+    "古い観覧車": { tags: ["古い建物", "思い出", "静かな風景"], ideal: [52, 58], paper: ["matte", "warm"], frame: "white" },
+    "深夜の横断歩道": { tags: ["都市", "夜景"], ideal: [46, 45], paper: ["glossy"], frame: "black" },
+    "花束と窓辺": { tags: ["花", "窓辺", "室内"], ideal: [70, 72], paper: ["matte", "warm"], frame: "white" },
+    "夜行列車": { tags: ["駅", "夜景", "思い出"], ideal: [43, 47], paper: ["warm", "glossy"], frame: "black" },
+    "雨上がりの屋上": { tags: ["雨", "水面", "都市"], ideal: [50, 38], paper: ["glossy"], frame: "silver" }
   };
-  let nextFilmId = 1;
-  let selected = 0;
-  let lastFrame = Date.now();
-  let dirty = true;
-  let audioContext = null;
+  const THEMES = Object.keys(THEME_DATA);
+  const STORIES = {
+    station: ["引っ越す前に撮った、最後の駅です。夜の色を残してください。", "帰れなかった夜のホームです。灯りだけ覚えています。", "古い切符と一緒に見つけました。あの夜を見せてください。"],
+    cat: ["窓辺にいた猫の写真です。あの夜を覚えていたいです。", "眠っていたあの子の、静かな時間です。", "家族だった猫のフィルムです。やさしく仕上げてください。"],
+    memory: ["父が昔撮ったフィルムです。何が写っているか、私も知りません。", "古い箱の底から見つけました。色を取り戻してください。", "忘れたくない夜だった気がします。"],
+    rain: ["雨の帰り道に撮りました。光だけはきれいだった気がします。", "傘越しに見えた光を残したくて。", "濡れた夜の青を、もう一度見せてください。"],
+    moon: ["月が水面に落ちた瞬間です。静けさまで残せますか。", "眠れない夜に撮った月です。", "あの日だけ、月が近く見えました。"],
+    general: ["何が写っているのか、確かめる勇気をください。", "大切な夜の一本です。丁寧にお願いします。", "記憶より先に、色が薄れてしまいました。"]
+  };
+  const REACTIONS = ["あの日の音まで思い出しました。", "この青い色を、ずっと覚えていたかったんです。", "古い写真なのに、昨日のことのように見えます。", "額に入れて、部屋に飾ります。", "夜の光が、まだここにあったんですね。"];
+  const RARITIES = { common: { label: "コモン", value: 12 }, uncommon: { label: "アンコモン", value: 22 }, rare: { label: "レア", value: 45 }, masterpiece: { label: "マスターピース", value: 100 } };
+  const FILM_TYPES = { normal: { label: "通常", mult: 1 }, old: { label: "古い", mult: 1.25 }, wet: { label: "濡れた", mult: 1.15 }, bw: { label: "白黒", mult: 1.1 } };
+  const PAPERS = { glossy: { label: "光沢紙", note: "光と水面を鮮やかに" }, matte: { label: "マット紙", note: "人物や静景をやわらかく" }, warm: { label: "温調紙", note: "思い出に温かな階調を" }, moon: { label: "月光紙", note: "満月が宿る特別紙" } };
+  const FRAMES = { black: { label: "黒木枠" }, white: { label: "白木枠" }, silver: { label: "青銀枠" }, gold: { label: "金装飾枠" } };
+  const RESULT = { PERFECT: [10, 12], GOOD: [8, 7], OK: [6, 3], MISS: [4, 1] };
+  let nextFilmId = 1, selected = 0, dirty = true, audioContext = null, mini = null, completionTimer = 0;
+  const $ = id => document.getElementById(id);
 
-  function initialState() {
-    return {
-      money: 20, completedCount: 0, incomingQueue: [],
-      stations: STATION_DEFS.map(() => ({ queue: [], current: null, automated: false, speedLevel: 0, capacityLevel: 0 })),
-      album: [], logs: ["午前二時。現像所を開きました。"], settings: { sound: false, reducedMotion: false },
-      lastSavedAt: Date.now(), goalReached: false, nextArrivalAt: Date.now() + randomArrival()
-    };
-  }
+  function initialState() { return { money: 20, completedCount: 0, incomingQueue: [], stations: STATION_DEFS.map(() => ({ queue: [], current: null, automated: false, speedLevel: 0, capacityLevel: 0 })), album: [], logs: [{ message: "午前二時。現像所を開きました。", type: "info", at: Date.now() }], settings: { sound: false, reducedMotion: false }, moonlightGauge: 0, fullMoonUntil: 0, lastSavedAt: Date.now(), goalReached: false, nextArrivalAt: Date.now() + randomArrival(), autoCounter: 0 }; }
   let state = initialState();
-
-  const $ = (id) => document.getElementById(id);
-  const dom = {};
   function randomArrival() { return 5000 + Math.random() * 3000; }
   function seeded(seed) { let x = seed | 0; return function () { x = Math.imul(x ^ x >>> 15, 1 | x); x ^= x + Math.imul(x ^ x >>> 7, 61 | x); return ((x ^ x >>> 14) >>> 0) / 4294967296; }; }
-  function rarityRoll(rand) { const n = rand(); return n < .01 ? "masterpiece" : n < .10 ? "rare" : n < .35 ? "uncommon" : "common"; }
-  function makeFilm() {
-    const seed = Math.floor(Math.random() * 2147483647); const rand = seeded(seed); const rarity = rarityRoll(rand);
-    return { id: nextFilmId++, theme: THEMES[Math.floor(rand() * THEMES.length)], rarity, seed, stage: -1, value: RARITIES[rarity].value, status: "受付待ち", createdAt: Date.now() };
-  }
+  function rarityRoll(rand) { const boost = Date.now() < state.fullMoonUntil ? .05 : 0; const n = rand(); return n < .01 + boost / 5 ? "masterpiece" : n < .10 + boost ? "rare" : n < .35 + boost ? "uncommon" : "common"; }
+  function storyFor(theme, rand) { const d = THEME_DATA[theme], key = d.tags.includes("猫") ? "cat" : d.tags.includes("駅") ? "station" : d.tags.includes("雨") ? "rain" : d.tags.includes("月") ? "moon" : d.tags.includes("思い出") ? "memory" : "general"; const list = STORIES[key]; return list[Math.floor(rand() * list.length)]; }
+  function makeFilm() { const seed = Math.floor(Math.random() * 2147483647), rand = seeded(seed), theme = THEMES[Math.floor(rand() * THEMES.length)], rarity = rarityRoll(rand), typeRoll = rand(), filmType = typeRoll < .15 ? "old" : typeRoll < .30 ? "wet" : typeRoll < .38 ? "bw" : "normal"; return migrateFilm({ id: nextFilmId++, theme, rarity, seed, stage: -1, value: RARITIES[rarity].value, status: "受付待ち", createdAt: Date.now(), filmType, request: storyFor(theme, rand), reaction: REACTIONS[Math.floor(rand() * REACTIONS.length)] }); }
+  function inferReveal(stage) { return stage < 0 ? 0 : stage < 2 ? 1 : stage < 3 ? 2 : stage < 5 ? 3 : 4; }
+  function migrateFilm(f) { if (!f) return f; f.qualityScore = Number.isFinite(f.qualityScore) ? f.qualityScore : 40; f.stationResults = f.stationResults || {}; f.qualityRank = f.qualityRank || "C"; f.paperType = f.paperType || null; f.frameType = f.frameType || null; f.dustRemaining = Number.isFinite(f.dustRemaining) ? f.dustRemaining : 0; f.correctionValues = f.correctionValues || { brightness: 50, temperature: 50 }; f.revealStage = Number.isFinite(f.revealStage) ? f.revealStage : inferReveal(f.stage ?? -1); f.filmType = f.filmType || "normal"; const rand = seeded(f.seed || f.id || 1); f.request = f.request || storyFor(f.theme || THEMES[0], rand); f.reaction = f.reaction || REACTIONS[Math.floor(rand() * REACTIONS.length)]; return f; }
+  function allFilms() { return [...state.incomingQueue, ...state.stations.flatMap(s => [...s.queue, ...(s.current ? [s.current.film] : [])]), ...state.album]; }
   function stationCapacity(st) { return 1 + st.capacityLevel; }
-  function processDuration(index) { return STATION_DEFS[index].time * Math.pow(.85, state.stations[index].speedLevel); }
-  function log(message) { state.logs.push(message); state.logs = state.logs.slice(-6); dirty = true; }
+  function processDuration(i) { return STATION_DEFS[i].time * Math.pow(.85, state.stations[i].speedLevel) * (Date.now() < state.fullMoonUntil ? .8 : 1); }
+  function log(message, type = "info") { state.logs.push({ message, type, at: Date.now() }); state.logs = state.logs.slice(-6); dirty = true; }
+  function addMoon(amount) { if (Date.now() < state.fullMoonUntil) return; state.moonlightGauge = Math.min(100, state.moonlightGauge + amount); if (state.moonlightGauge >= 100) { state.fullMoonUntil = Date.now() + 45000; log("満月モードが始まりました", "moon"); } }
+  function arrive(now) { if (now < state.nextArrivalAt) return; if (state.incomingQueue.length < 8) { const film = makeFilm(); state.incomingQueue.push(film); log(`フィルム #${film.id} を預かりました`, "arrival"); } else if (!state.logs.some(x => x.message === "受付がいっぱいです")) log("受付がいっぱいです", "alert"); state.nextArrivalAt = now + randomArrival(); }
+  function feedQueues() { const first = state.stations[0]; while (state.incomingQueue.length && first.queue.length < stationCapacity(first)) { const film = state.incomingQueue.shift(); film.stage = 0; film.status = "待機中"; first.queue.push(film); dirty = true; } }
+  function startAuto(i) { const st = state.stations[i]; if (st.current || !st.queue.length || !st.automated) return; const film = st.queue.shift(); film.status = "自動処理中"; st.current = { film, startedAt: Date.now(), duration: processDuration(i), done: false, points: 6, intervention: false }; state.autoCounter++; if (state.autoCounter >= 2 + Math.floor(Math.random() * 4)) { state.autoCounter = 0; st.current.intervention = true; st.current.interventionUntil = Date.now() + 4000; showIntervention(i); } sound("start"); dirty = true; }
+  function completeStation(i, film, grade, points, moon, extras) { if (!film || film.stationResults[STATION_DEFS[i].id]) return; film.qualityScore = Math.min(100, film.qualityScore + points); film.stationResults[STATION_DEFS[i].id] = Object.assign({ grade, points }, extras || {}); if (moon) addMoon(moon); film.revealStage = Math.max(film.revealStage, i === 0 ? 1 : i === 2 ? 2 : i === 3 ? 3 : i === 5 ? 4 : film.revealStage); film.status = "次工程への移動待ち"; const st = state.stations[i]; st.current = { film, startedAt: Date.now(), duration: 0, done: true, points }; log(`${STATION_DEFS[i].name}：${grade}`, grade === "PERFECT" ? "perfect" : "process"); dirty = true; sound("complete"); }
+  function moveDone(i) { const st = state.stations[i]; if (!st.current || !st.current.done) return; if (i === 5) return completeFilm(st.current.film); const next = state.stations[i + 1]; if (next.queue.length < stationCapacity(next)) { const film = st.current.film; film.stage = i + 1; film.status = "待機中"; next.queue.push(film); st.current = null; dirty = true; } }
+  function updateStations(now) { state.stations.forEach((st, i) => { if (st.current && !st.current.done && now - st.current.startedAt >= st.current.duration) completeStation(i, st.current.film, st.current.points > 6 ? "GOOD" : "OK", st.current.points || 6, 0, { automated: true }); moveDone(i); startAuto(i); }); }
+  function resultFromPoints(points) { return points >= 10 ? "PERFECT" : points >= 8 ? "GOOD" : points >= 6 ? "OK" : "MISS"; }
+  function qualityRank(score) { return score >= 95 ? "S" : score >= 80 ? "A" : score >= 65 ? "B" : "C"; }
+  function completeFilm(film, quiet) { state.stations[5].current = null; film.qualityScore = Math.min(100, Math.round(film.qualityScore)); film.qualityRank = qualityRank(film.qualityScore); const qm = { C: 1, B: 1.2, A: 1.5, S: 2 }[film.qualityRank], base = Math.round(RARITIES[film.rarity].value * FILM_TYPES[film.filmType].mult), paperBonus = film.stationResults.printer?.bonus || 1, frameBonus = film.stationResults.frame?.bonus || 1, dustPenalty = Math.max(.85, 1 - film.dustRemaining * .025), wetBonus = film.filmType === "wet" ? .9 + (film.stationResults.dryer?.points || 4) / 50 : 1; film.baseValue = base; film.qualityMultiplier = qm; film.paperBonus = paperBonus; film.frameBonus = frameBonus; film.value = Math.max(1, Math.round(base * qm * paperBonus * frameBonus * dustPenalty * wetBonus)); film.revealStage = 4; film.firstObtainedAt = film.firstObtainedAt || new Date().toISOString(); film.number = ++state.completedCount; state.money += film.value; state.album.unshift(film); state.album = state.album.slice(0, 50); if (!quiet) { log(`「${film.theme}」が完成しました`, "complete"); log(`売上 ${film.value} を獲得しました`, "money"); showMoney(film.value); showCompletion(film); sound(film.rarity === "common" ? "complete" : "rare"); } checkGoal(); dirty = true; }
+  function checkGoal() { if (!state.goalReached && state.completedCount >= 25 && state.stations.every(s => s.automated)) { state.goalReached = true; log("夜明けの目標を達成しました", "moon"); save(); } }
 
-  function arrive(now) {
-    if (now < state.nextArrivalAt) return;
-    if (state.incomingQueue.length < 8) { const film = makeFilm(); state.incomingQueue.push(film); log(`「${film.theme}」のフィルムを預かりました`); }
-    else if (state.logs[state.logs.length - 1] !== "受付がいっぱいです") log("受付がいっぱいです");
-    state.nextArrivalAt = now + randomArrival();
-  }
-  function feedQueues() {
-    const first = state.stations[0];
-    while (state.incomingQueue.length && first.queue.length < stationCapacity(first)) {
-      const film = state.incomingQueue.shift(); film.stage = 0; film.status = "待機中"; first.queue.push(film);
-    }
-  }
-  function startStation(index, manual) {
-    const st = state.stations[index];
-    if (st.current || !st.queue.length) return false;
-    if (!manual && !st.automated) return false;
-    const film = st.queue.shift(); film.status = "処理中"; st.current = { film, startedAt: Date.now(), duration: processDuration(index), done: false };
-    sound("start"); dirty = true; return true;
-  }
-  function updateStations(now) {
-    state.stations.forEach((st, i) => {
-      if (st.current && !st.current.done && now - st.current.startedAt >= st.current.duration) {
-        st.current.done = true; st.current.film.status = "次工程への移動待ち"; log(`「${st.current.film.theme}」の${STATION_DEFS[i].name}が完了しました`);
-      }
-      if (st.current && st.current.done) {
-        if (i === state.stations.length - 1) completeFilm(st.current.film);
-        else {
-          const next = state.stations[i + 1];
-          if (next.queue.length < stationCapacity(next)) { const film = st.current.film; film.stage = i + 1; film.status = "待機中"; next.queue.push(film); st.current = null; dirty = true; }
-        }
-      }
-      if (st.automated) startStation(i, false);
-    });
-  }
-  function completeFilm(film, quiet) {
-    state.stations[5].current = null; state.money += film.value; state.completedCount++;
-    const photo = { id: film.id, theme: film.theme, rarity: film.rarity, seed: film.seed, value: film.value, firstObtainedAt: new Date().toISOString(), number: state.completedCount };
-    state.album.unshift(photo); state.album = state.album.slice(0, 50);
-    if (!quiet) { log(`${film.rarity === "rare" || film.rarity === "masterpiece" ? "希少な" : ""}写真「${film.theme}」が完成しました`); log(`売上を${film.value}獲得しました`); showMoney(film.value); sound(film.rarity === "common" ? "complete" : "rare"); }
-    checkGoal(); dirty = true;
-  }
-  function checkGoal() {
-    if (!state.goalReached && state.completedCount >= 25 && state.stations.every(s => s.automated)) {
-      state.goalReached = true; document.body.classList.add("goal-reached");
-      showModal("夜明けの気配", "<p>25枚の夜が、壁を彩りました。</p><p><strong>現像所は、あなたの手を離れて動き始めた。</strong></p><p>窓の外が、わずかに朝へ近づいています。ゲームはこのまま続けられます。</p>", true); sound("rare"); save();
-    }
-  }
-  function tick() {
-    const now = Date.now(); lastFrame = now; arrive(now); feedQueues(); updateStations(now); updateDynamic(now);
-    if (dirty) { render(); dirty = false; }
-    requestAnimationFrame(tick);
-  }
-
-  function buildStations() {
-    dom.stationEls = [];
-    STATION_DEFS.forEach((def, i) => {
-      const el = document.createElement("button"); el.className = "station"; el.dataset.id = def.id; el.dataset.index = i;
-      el.title = `${i + 1}: ${def.name}`; el.innerHTML = `<h3>${i + 1}. ${def.name}</h3><div class="machine"></div><small class="state">待機中</small><div class="progress-track"><div class="progress-fill"></div></div>`;
-      el.addEventListener("click", () => { selected = i; dirty = true; }); $("stations").appendChild(el); dom.stationEls.push(el);
-    });
-  }
-  function render() {
-    $("money").textContent = state.money; $("completed").textContent = state.completedCount; $("autoCount").textContent = state.stations.filter(s => s.automated).length;
-    $("queueCount").textContent = `${state.incomingQueue.length} / 8`; $("incomingQueue").innerHTML = state.incomingQueue.map(f => `<span class="queue-film" title="${f.theme}">#${f.id}</span>`).join("");
-    state.stations.forEach((st, i) => {
-      const el = dom.stationEls[i]; el.classList.toggle("selected", i === selected); el.classList.toggle("running", !!st.current); el.classList.toggle("auto", st.automated);
-      const text = st.current ? (st.current.done ? "移動待ち" : "処理中") : st.queue.length ? `待機 ${st.queue.length}本` : "待機中"; el.querySelector(".state").textContent = `${text}${st.automated ? "・自動" : ""}`;
-    });
-    renderUpgrade(); renderLogs(); renderRecent(); renderWall(); $("albumCount").textContent = `${state.album.length} / 50`; $("emptyAlbum").hidden = state.album.length > 0;
-    document.body.classList.toggle("reduced-motion", state.settings.reducedMotion); document.body.classList.toggle("goal-reached", state.goalReached);
-  }
-  function updateDynamic(now) {
-    const minutes = Math.min(239, Math.floor((state.completedCount / 25) * 210)); $("nightClock").textContent = `${String(2 + Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
-    $("nextArrival").textContent = state.incomingQueue.length >= 8 ? "受付停止中：空きを作ってください" : `次の到着まで ${Math.max(0, Math.ceil((state.nextArrivalAt - now) / 1000))}秒`;
-    state.stations.forEach((st, i) => { const fill = dom.stationEls[i].querySelector(".progress-fill"); if (st.current) { const p = st.current.done ? 100 : Math.min(100, (now - st.current.startedAt) / st.current.duration * 100); fill.style.width = `${p}%`; dom.stationEls[i].querySelector(".state").textContent = st.current.done ? "次の工程に空き待ち" : `処理中 ${(Math.max(0, st.current.duration - now + st.current.startedAt) / 1000).toFixed(1)}秒`; } else fill.style.width = "0"; });
-  }
-  function renderUpgrade() {
-    const st = state.stations[selected], def = STATION_DEFS[selected]; $("selectedTitle").textContent = `${selected + 1}. ${def.name}`;
-    $("selectedState").textContent = `待機 ${st.queue.length}/${stationCapacity(st)}・速度 ${Math.round(processDuration(selected) / 100) / 10}秒`;
-    $("workButton").disabled = !!st.current || !st.queue.length; $("workButton").textContent = st.automated ? "自動運転中" : "作業する Space";
-    const speedCost = def.speed + st.speedLevel * Math.ceil(def.speed * .65), capCost = def.capacity + st.capacityLevel * Math.ceil(def.capacity * .8);
-    $("upgradeButtons").innerHTML = `
-      <button class="upgrade" data-upgrade="auto" ${st.automated ? "disabled" : ""}><span>自動化 ${st.automated ? "導入済み" : ""}</span><em>${st.automated ? "✓" : def.auto}</em></button>
-      <button class="upgrade" data-upgrade="speed" ${st.speedLevel >= 3 ? "disabled" : ""}><span>高速化 Lv.${st.speedLevel}/3</span><em>${st.speedLevel >= 3 ? "MAX" : speedCost}</em></button>
-      <button class="upgrade" data-upgrade="capacity" ${st.capacityLevel >= 2 ? "disabled" : ""}><span>容量増加 Lv.${st.capacityLevel}/2</span><em>${st.capacityLevel >= 2 ? "MAX" : capCost}</em></button>`;
-    $("upgradeButtons").querySelectorAll("button").forEach(b => b.addEventListener("click", () => buyUpgrade(b.dataset.upgrade)));
-  }
-  function buyUpgrade(type) {
-    const st = state.stations[selected], def = STATION_DEFS[selected]; let cost;
-    if (type === "auto") { if (st.automated) return; cost = def.auto; }
-    if (type === "speed") { if (st.speedLevel >= 3) return; cost = def.speed + st.speedLevel * Math.ceil(def.speed * .65); }
-    if (type === "capacity") { if (st.capacityLevel >= 2) return; cost = def.capacity + st.capacityLevel * Math.ceil(def.capacity * .8); }
-    if (state.money < cost) { $("buyReason").textContent = `売上があと${cost - state.money}必要です`; return; }
-    state.money -= cost; if (type === "auto") { st.automated = true; log(`${def.name}を自動化しました`); } else if (type === "speed") { st.speedLevel++; log(`${def.name}を高速化しました`); } else { st.capacityLevel++; log(`${def.name}の容量を増やしました`); }
-    $("buyReason").textContent = "導入しました"; sound("button"); checkGoal(); save(); dirty = true;
-  }
-  function renderLogs() { $("eventLog").innerHTML = state.logs.slice().reverse().map(x => `<li>${x}</li>`).join(""); }
-  function photoCard(photo) { return `<button class="album-card ${photo.rarity === "rare" || photo.rarity === "masterpiece" ? "rare" : ""}" data-photo="${photo.id}"><canvas width="64" height="48"></canvas><h3>${photo.theme}</h3><p class="rarity-${photo.rarity}">${RARITIES[photo.rarity].label} ・ ${photo.value}</p><p>撮影番号 #${photo.number}</p><p>${new Date(photo.firstObtainedAt).toLocaleString("ja-JP")}</p></button>`; }
-  function renderAlbum() { $("albumGrid").innerHTML = state.album.map(photoCard).join(""); $("albumGrid").querySelectorAll(".album-card").forEach((el, i) => { drawPhoto(el.querySelector("canvas"), state.album[i]); el.addEventListener("click", () => previewPhoto(state.album[i])); }); }
-  function renderRecent() { const p = state.album[0]; if (!p) return; $("recentPhoto").innerHTML = `<canvas width="64" height="48"></canvas><strong>${p.theme}</strong><p class="rarity-${p.rarity}">${RARITIES[p.rarity].label} ・ +${p.value}</p>`; drawPhoto($("recentPhoto").querySelector("canvas"), p); }
+  function buildStations() { window.stationEls = []; STATION_DEFS.forEach((def, i) => { const el = document.createElement("button"); el.className = "station"; el.dataset.id = def.id; el.innerHTML = `<span class="ready-label">操作可能</span><h3>${i + 1}. ${def.name}</h3><div class="machine"><i></i><b></b><em></em></div><small class="state">待機中</small><div class="progress-track"><div class="progress-fill"></div></div>`; el.addEventListener("click", () => { selected = i; dirty = true; if (canOperate(i)) openMinigame(i); }); $("stations").appendChild(el); window.stationEls.push(el); }); }
+  function canOperate(i) { const st = state.stations[i]; return !st.automated && !st.current && st.queue.length > 0 && !mini; }
+  function render() { $("money").textContent = state.money; $("completed").textContent = state.completedCount; $("autoCount").textContent = state.stations.filter(s => s.automated).length; $("moonValue").textContent = Math.floor(state.moonlightGauge); $("moonFill").style.width = `${state.moonlightGauge}%`; $("queueCount").textContent = `${state.incomingQueue.length} / 8`; $("incomingQueue").innerHTML = state.incomingQueue.map(f => `<article class="queue-film type-${f.filmType}" title="${escapeHtml(f.request)}"><b>#${f.id}</b><span>${FILM_TYPES[f.filmType].label}フィルム</span><small>${escapeHtml(f.request)}</small><em>内容：？？？</em></article>`).join(""); state.stations.forEach((st, i) => { const el = window.stationEls[i], ready = canOperate(i); el.classList.toggle("selected", i === selected); el.classList.toggle("running", !!st.current); el.classList.toggle("auto", st.automated); el.classList.toggle("ready", ready); el.querySelector(".state").textContent = st.current ? (st.current.done ? "移動待ち" : "処理中") : st.queue.length ? `${st.queue.length}本待機${st.automated ? "・自動" : ""}` : st.automated ? "自動待機" : "待機中"; }); renderUpgrade(); renderLogs(); renderRecent(); renderWall(); $("albumCount").textContent = `${state.album.length} / 50`; $("emptyAlbum").hidden = state.album.length > 0; document.body.classList.toggle("reduced-motion", state.settings.reducedMotion); document.body.classList.toggle("full-moon", Date.now() < state.fullMoonUntil); }
+  function updateDynamic(now) { const minutes = Math.min(239, Math.floor((state.completedCount / 25) * 210)); $("nightClock").textContent = `${String(2 + Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`; $("nextArrival").textContent = state.incomingQueue.length >= 8 ? "受付停止中：空きを作ってください" : `次の到着まで ${Math.max(0, Math.ceil((state.nextArrivalAt - now) / 1000))}秒`; $("fullMoonText").textContent = now < state.fullMoonUntil ? `満月 ${Math.ceil((state.fullMoonUntil - now) / 1000)}秒` : ""; state.stations.forEach((st, i) => { const fill = window.stationEls[i].querySelector(".progress-fill"); fill.style.width = st.current ? `${st.current.done ? 100 : Math.min(100, (now - st.current.startedAt) / st.current.duration * 100)}%` : "0"; }); if (state.fullMoonUntil && now >= state.fullMoonUntil) { state.fullMoonUntil = 0; state.moonlightGauge = 0; log("満月モードが終わりました", "moon"); } }
+  function renderUpgrade() { const st = state.stations[selected], def = STATION_DEFS[selected]; $("selectedTitle").textContent = `${selected + 1}. ${def.name}`; $("selectedState").textContent = `待機 ${st.queue.length}/${stationCapacity(st)}・速度 ${(processDuration(selected) / 1000).toFixed(1)}秒${st.automated ? "・自動運転" : ""}`; $("operationHelp").textContent = `${def.help} ${canOperate(selected) ? "設備を直接クリックしてください。" : ""}`; const speedCost = def.speed + st.speedLevel * Math.ceil(def.speed * .65), capCost = def.capacity + st.capacityLevel * Math.ceil(def.capacity * .8); $("upgradeButtons").innerHTML = `<button class="upgrade" data-upgrade="auto" ${st.automated ? "disabled" : ""}><span>自動化 ${st.automated ? "導入済み" : ""}</span><em>${st.automated ? "✓" : def.auto}</em></button><button class="upgrade" data-upgrade="speed" ${st.speedLevel >= 3 ? "disabled" : ""}><span>高速化 Lv.${st.speedLevel}/3</span><em>${st.speedLevel >= 3 ? "MAX" : speedCost}</em></button><button class="upgrade" data-upgrade="capacity" ${st.capacityLevel >= 2 ? "disabled" : ""}><span>容量増加 Lv.${st.capacityLevel}/2</span><em>${st.capacityLevel >= 2 ? "MAX" : capCost}</em></button>`; $("upgradeButtons").querySelectorAll("button").forEach(b => b.onclick = () => buyUpgrade(b.dataset.upgrade)); }
+  function buyUpgrade(type) { const st = state.stations[selected], def = STATION_DEFS[selected]; let cost = type === "auto" ? def.auto : type === "speed" ? def.speed + st.speedLevel * Math.ceil(def.speed * .65) : def.capacity + st.capacityLevel * Math.ceil(def.capacity * .8); if ((type === "auto" && st.automated) || (type === "speed" && st.speedLevel >= 3) || (type === "capacity" && st.capacityLevel >= 2)) return; if (state.money < cost) return void ($("buyReason").textContent = `売上があと${cost - state.money}必要です`); state.money -= cost; if (type === "auto") { st.automated = true; log(`${def.name}を自動化しました`, "upgrade"); } else if (type === "speed") { st.speedLevel++; log(`${def.name}を高速化しました`, "upgrade"); } else { st.capacityLevel++; log(`${def.name}の容量を増やしました`, "upgrade"); } $("buyReason").textContent = "導入しました"; sound("button"); checkGoal(); save(); dirty = true; }
+  function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
+  function renderLogs() { const icons = { info: "·", arrival: "◇", alert: "!", perfect: "★", process: "✓", complete: "◆", money: "+", upgrade: "◎", moon: "☾" }; $("eventLog").innerHTML = state.logs.slice().reverse().map((x, i) => { const item = typeof x === "string" ? { message: x, at: Date.now(), type: "info" } : x; const t = new Date(item.at || Date.now()).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }); return `<li class="${i === 0 ? "new" : ""}" title="${escapeHtml(item.message)}"><time>${t}</time><b>${icons[item.type] || "·"}</b><span>${escapeHtml(item.message)}</span></li>`; }).join(""); }
+  function photoCard(p) { return `<button class="album-card ${p.rarity === "rare" || p.rarity === "masterpiece" ? "rare" : ""}" data-photo="${p.id}"><canvas width="64" height="48"></canvas><h3>${p.theme}</h3><p class="rarity-${p.rarity}">${RARITIES[p.rarity].label} ・ ${p.value}</p><p>品質 ${p.qualityRank || "C"} / ${p.qualityScore || 40}</p></button>`; }
+  function renderAlbum() { $("albumGrid").innerHTML = state.album.map(photoCard).join(""); $("albumGrid").querySelectorAll(".album-card").forEach((el, i) => { drawPhoto(el.querySelector("canvas"), state.album[i]); el.onclick = () => previewPhoto(state.album[i]); }); }
+  function renderRecent() { const p = state.album[0]; if (!p) return; $("recentPhoto").innerHTML = `<canvas width="64" height="48"></canvas><strong>${p.theme}</strong><p class="rarity-${p.rarity}">${RARITIES[p.rarity].label} ・ 品質${p.qualityRank} ・ +${p.value}</p>`; drawPhoto($("recentPhoto").querySelector("canvas"), p); }
   function renderWall() { $("wallPhotos").innerHTML = state.album.slice(0, 3).map(() => `<canvas width="64" height="48"></canvas>`).join(""); $("wallPhotos").querySelectorAll("canvas").forEach((c, i) => drawPhoto(c, state.album[i])); }
+  function drawPhoto(canvas, photo, reveal = 4) { const c = canvas.getContext("2d"), r = seeded(photo.seed), rare = photo.rarity === "rare" || photo.rarity === "masterpiece"; c.imageSmoothingEnabled = false; c.fillStyle = "#07142f"; c.fillRect(0, 0, 64, 48); const variant = THEMES.indexOf(photo.theme) % 6; c.fillStyle = variant % 2 ? "#10275b" : "#193ca3"; c.fillRect(0, 20, 64, 28); c.fillStyle = rare ? "#ecd283" : "#9aafef"; c.fillRect(45 + Math.floor(r() * 8), 5, 8, 8); if (variant === 0 || variant === 4) { c.fillStyle = "#091a38"; for (let x = 0; x < 64; x += 12) c.fillRect(x, 20 - Math.floor(r() * 8), 9, 28); c.fillStyle = "#e1b941"; for (let x = 3; x < 60; x += 11) if (r() > .35) c.fillRect(x, 25 + Math.floor(r() * 12), 3, 4); } else if (variant === 1) { c.fillStyle = "#07142f"; c.fillRect(29, 12, 3, 29); c.fillRect(20, 22, 22, 2); } else if (variant === 2) { for (let y = 25; y < 47; y += 4) { c.fillStyle = y % 8 ? "#4169e1" : "#9aafef"; c.fillRect(Math.floor(r() * 8), y, 55, 2); } } else if (variant === 3) { c.fillStyle = "#07142f"; c.fillRect(0, 28, 64, 20); for (let i = 0; i < 10; i++) { c.fillStyle = "#9aafef"; c.fillRect(Math.floor(r() * 64), Math.floor(r() * 48), 1, 6); } } else { c.fillStyle = "#050b19"; c.fillRect(19, 29, 25, 10); c.fillRect(24, 24, 13, 8); } for (let i = 0; i < (rare ? 15 : 5); i++) { c.fillStyle = rare ? "#e1b941" : "#9aafef"; c.fillRect(Math.floor(r() * 64), Math.floor(r() * 25), 1, 1); } if (photo.dustRemaining) { c.fillStyle = "#17131a"; for (let i = 0; i < photo.dustRemaining; i++) c.fillRect(Math.floor(r() * 60) + 2, Math.floor(r() * 44) + 2, 1, 1); } if (reveal <= 1) { c.fillStyle = "#031020cc"; c.fillRect(0, 0, 64, 48); } if (photo.filmType === "bw") { c.globalCompositeOperation = "saturation"; c.fillStyle = "#777"; c.fillRect(0, 0, 64, 48); c.globalCompositeOperation = "source-over"; } }
 
-  function drawPhoto(canvas, photo) {
-    const c = canvas.getContext("2d"), r = seeded(photo.seed), rare = photo.rarity === "rare" || photo.rarity === "masterpiece";
-    c.imageSmoothingEnabled = false; c.fillStyle = "#07142f"; c.fillRect(0, 0, 64, 48);
-    const variant = THEMES.indexOf(photo.theme) % 6;
-    c.fillStyle = variant % 2 ? "#10275b" : "#193ca3"; c.fillRect(0, 20, 64, 28);
-    c.fillStyle = rare ? "#ecd283" : "#9aafef"; c.fillRect(45 + Math.floor(r() * 8), 5, 8, 8);
-    if (variant === 0 || variant === 4) { c.fillStyle = "#091a38"; for (let x = 0; x < 64; x += 12) c.fillRect(x, 20 - Math.floor(r() * 8), 9, 28); c.fillStyle = "#e1b941"; for (let x = 3; x < 60; x += 11) if (r() > .35) c.fillRect(x, 25 + Math.floor(r() * 12), 3, 4); }
-    if (variant === 1) { c.fillStyle = "#07142f"; c.fillRect(29, 12, 3, 29); c.fillRect(20, 22, 22, 2); c.fillRect(24, 16, 14, 2); }
-    if (variant === 2) { for (let y = 25; y < 47; y += 4) { c.fillStyle = y % 8 ? "#4169e1" : "#9aafef"; c.fillRect(Math.floor(r() * 8), y, 55, 2); } c.fillStyle = "#e1b941"; c.fillRect(48, 22, 3, 20); }
-    if (variant === 3) { c.fillStyle = "#07142f"; c.fillRect(0, 28, 64, 20); c.fillStyle = "#9aafef"; for (let i = 0; i < 10; i++) c.fillRect(Math.floor(r() * 64), Math.floor(r() * 48), 1, 6); }
-    if (variant === 5) { c.fillStyle = "#050b19"; c.fillRect(19, 29, 25, 10); c.fillRect(24, 24, 13, 8); c.fillRect(21, 22, 4, 5); c.fillRect(36, 22, 4, 5); }
-    const lights = rare ? 15 : photo.rarity === "uncommon" ? 8 : 4; c.fillStyle = rare ? "#e1b941" : "#9aafef"; for (let i = 0; i < lights; i++) c.fillRect(Math.floor(r() * 64), Math.floor(r() * 25), r() > .7 ? 2 : 1, 1);
-    if (rare) { c.strokeStyle = "#e1b941"; c.lineWidth = 2; c.strokeRect(1, 1, 62, 46); }
-  }
-  function previewPhoto(photo) { showModal(photo.theme, `<canvas id="previewCanvas" class="preview-canvas" width="64" height="48"></canvas><p class="rarity-${photo.rarity}">${RARITIES[photo.rarity].label} ・ 売値 ${photo.value}</p><p>撮影番号 #${photo.number}<br>${new Date(photo.firstObtainedAt).toLocaleString("ja-JP")}</p>`); drawPhoto($("previewCanvas"), photo); }
-  function showModal(title, html, goal) { $("modalTitle").textContent = title; $("modalBody").innerHTML = html; $("modal").hidden = false; $("modal").querySelector(".modal-card").classList.toggle("goal", !!goal); $("modalClose").focus(); }
+  function openMinigame(i) { if (!canOperate(i)) return; const film = state.stations[i].queue.shift(); film.status = "手動操作中"; mini = { i, film, startedAt: performance.now(), raf: 0, finished: false }; $("workStep").textContent = `工程 ${i + 1} / 6`; $("workTitle").textContent = STATION_DEFS[i].name; $("workStory").textContent = film.request; $("workOverlay").hidden = false; const setups = [setupDeveloper, setupDryer, setupScanner, setupColor, setupPrinter, setupFrame]; setups[i](); sound("start"); dirty = true; }
+  function basePhoto(className = "") { return `<div class="work-photo ${className}"><canvas width="64" height="48"></canvas></div>`; }
+  function paintWork(reveal) { const canvas = $("workBody").querySelector("canvas"); if (canvas) drawPhoto(canvas, mini.film, reveal); }
+  function finishMini(grade, points, extras) { if (!mini || mini.finished) return; mini.finished = true; cancelAnimationFrame(mini.raf); const m = mini, moon = RESULT[grade]?.[1] || 0; completeStation(m.i, m.film, grade, points, moon, extras); mini = null; $("workOverlay").hidden = true; }
+  function closeWork() { if (!mini) return; finishMini("OK", 6, { interrupted: true }); }
+  function setupDeveloper() { $("workBody").innerHTML = `${basePhoto("developing")}<div class="timing"><i class="sweet"></i><b id="timingNeedle"></b></div><div id="developState">未現像</div><button id="mainAction" class="primary">引き上げる</button>`; $("workKeys").innerHTML = `<kbd>Space</kbd> 引き上げる　<kbd>Esc</kbd> 通常評価で閉じる`; paintWork(1); const duration = 4000, loop = now => { if (!mini) return; const p = Math.min(1, (now - mini.startedAt) / duration); $("timingNeedle").style.left = `${p * 100}%`; $("workBody").querySelector(".work-photo").style.filter = `brightness(${.28 + p * .72}) contrast(${1.5 - p * .3})`; $("developState").textContent = p < .55 ? "未現像" : p < .76 ? "適正露出" : "過現像"; mini.progress = p; if (p >= 1) return finishMini("MISS", 4); mini.raf = requestAnimationFrame(loop); }; $("mainAction").onclick = () => { const d = Math.abs((mini.progress || 0) - .66); finishMini(d < .055 ? "PERFECT" : d < .13 ? "GOOD" : d < .25 ? "OK" : "MISS", d < .055 ? 10 : d < .13 ? 8 : d < .25 ? 6 : 4); }; mini.raf = requestAnimationFrame(loop); }
+  function setupDryer() { $("workBody").innerHTML = `${basePhoto("swaying")}<div class="humidity"><i></i><b id="humidityNeedle"></b></div><p>適正湿度にいた割合 <strong id="humidityRate">0%</strong></p><div class="choice-row"><button id="weakWind">弱風</button><button id="strongWind">強風</button></div>`; $("workKeys").innerHTML = `<kbd>← / A</kbd> 弱風　<kbd>→ / D</kbd> 強風`; paintWork(1); mini.humidity = mini.film.filmType === "wet" ? 88 : 75; mini.wind = .45; mini.goodMs = 0; mini.last = performance.now(); $("weakWind").onclick = () => mini.wind = .25; $("strongWind").onclick = () => mini.wind = 1; const loop = now => { if (!mini) return; const dt = Math.min(80, now - mini.last); mini.last = now; mini.humidity += (.26 - mini.wind) * dt * .035 + Math.sin(now / 300) * .07; mini.humidity = Math.max(0, Math.min(100, mini.humidity)); if (mini.humidity >= 38 && mini.humidity <= 58) mini.goodMs += dt; $("humidityNeedle").style.left = `${mini.humidity}%`; $("humidityRate").textContent = `${Math.round(mini.goodMs / Math.max(1, now - mini.startedAt) * 100)}%`; $("workBody").querySelector(".work-photo").classList.toggle("curl", mini.wind > .8); if (now - mini.startedAt >= 4500) { const ratio = mini.goodMs / 4500; const grade = ratio >= .9 ? "PERFECT" : ratio >= .7 ? "GOOD" : ratio >= .4 ? "OK" : "MISS"; return finishMini(grade, RESULT[grade][0], { ratio }); } mini.raf = requestAnimationFrame(loop); }; mini.raf = requestAnimationFrame(loop); }
+  function setupScanner() { const rand = seeded(mini.film.seed + 77), total = (mini.film.filmType === "old" ? 5 : 2) + Math.floor(rand() * (mini.film.filmType === "old" ? 2 : 4)); $("workBody").innerHTML = `${basePhoto("scan-photo")}<p>ホコリ <strong id="dustCount">${total}</strong> 個</p>`; $("workKeys").innerHTML = `ホコリをクリック　<kbd>Esc</kbd> 通常評価で完了`; paintWork(2); const photo = $("workBody").querySelector(".work-photo"); photo.insertAdjacentHTML("beforeend", `<i class="scan-line ${["rare", "masterpiece"].includes(mini.film.rarity) ? "gold" : ""}"></i>`); for (let n = 0; n < total; n++) { const d = document.createElement("button"); d.className = "dust"; d.setAttribute("aria-label", "ホコリを除去"); d.style.left = `${8 + rand() * 82}%`; d.style.top = `${8 + rand() * 78}%`; d.onclick = () => { d.remove(); mini.removed++; $("dustCount").textContent = total - mini.removed; if (mini.removed === total) { log("スキャンでホコリをすべて除去しました", "perfect"); finishMini("PERFECT", 10, { remaining: 0 }); } }; photo.appendChild(d); } mini.removed = 0; mini.timer = setTimeout(() => { if (!mini) return; const remain = total - mini.removed, ratio = mini.removed / total, grade = ratio === 1 ? "PERFECT" : ratio >= .7 ? "GOOD" : ratio >= .4 ? "OK" : "MISS"; mini.film.dustRemaining = remain; finishMini(grade, RESULT[grade][0], { remaining: remain }); }, 4500); }
+  function setupColor() { const ideal = THEME_DATA[mini.film.theme].ideal; $("workBody").innerHTML = `${basePhoto("color-photo")}<div class="sliders"><label>明るさ <output id="brightOut">50</output><input id="brightness" type="range" min="0" max="100" value="50"><i style="left:${ideal[0] - 8}%"></i></label><label>色温度 <output id="tempOut">50</output><input id="temperature" type="range" min="0" max="100" value="50"><i style="left:${ideal[1] - 8}%"></i></label></div><p>雰囲気一致度 <strong id="matchRate">--%</strong></p><button id="mainAction" class="primary">この補正で決定</button>`; $("workKeys").innerHTML = `<kbd>← → / A D</kbd> 明るさ　<kbd>Enter</kbd> 決定`; paintWork(3); const update = () => { const b = +$("brightness").value, t = +$("temperature").value, match = Math.max(0, 100 - (Math.abs(b - ideal[0]) + Math.abs(t - ideal[1])) * 1.25); $("brightOut").textContent = b; $("tempOut").textContent = t; $("matchRate").textContent = `${Math.round(match)}%`; $("workBody").querySelector("canvas").style.filter = `brightness(${.55 + b / 110}) sepia(${Math.abs(t - 50) / 180}) hue-rotate(${(t - 50) * .55}deg)`; mini.match = match; }; [$("brightness"), $("temperature")].forEach(x => x.oninput = update); update(); $("mainAction").onclick = () => { const match = mini.match, grade = match >= 92 ? "PERFECT" : match >= 75 ? "GOOD" : match >= 50 ? "OK" : "MISS"; mini.film.correctionValues = { brightness: +$("brightness").value, temperature: +$("temperature").value }; finishMini(grade, RESULT[grade][0], { match: Math.round(match) }); }; }
+  function setupPrinter() { const unlocked = state.completedCount >= 15 || state.moonlightGauge >= 75, options = ["glossy", "matte", "warm", ...(unlocked ? ["moon"] : [])]; $("workBody").innerHTML = `${basePhoto("paper-preview")}<p>タグ：${THEME_DATA[mini.film.theme].tags.map(t => `<span class="tag">${t}</span>`).join(" ")}</p><div class="choice-row papers">${options.map(k => `<button data-paper="${k}"><i></i><b>${PAPERS[k].label}</b><small>${PAPERS[k].note}</small></button>`).join("")}</div>`; $("workKeys").innerHTML = `印画紙を選択　<kbd>Enter</kbd> 選択を確定`; paintWork(3); $("workBody").querySelectorAll("[data-paper]").forEach(b => b.onclick = () => { const key = b.dataset.paper, ideals = THEME_DATA[mini.film.theme].paper, best = key === "moon" && ["rare", "masterpiece"].includes(mini.film.rarity), pos = ideals.indexOf(key), points = best || pos === 0 ? 10 : pos === 1 ? 8 : 6; mini.film.paperType = key; finishMini(resultFromPoints(points), points, { bonus: points === 10 ? 1.15 : points === 8 ? 1.08 : 1 }); }); }
+  function setupFrame() { const ideal = THEME_DATA[mini.film.theme].frame, pool = [ideal, "black", "white", "silver", "gold"].filter((x, i, a) => a.indexOf(x) === i).slice(0, 3); if (["rare", "masterpiece"].includes(mini.film.rarity) && !pool.includes("gold")) pool[2] = "gold"; $("workBody").innerHTML = `${basePhoto("frame-preview")}<div class="choice-row frames">${pool.map(k => `<button data-frame="${k}"><i class="frame-${k}"></i><b>${FRAMES[k].label}</b></button>`).join("")}</div>`; $("workKeys").innerHTML = `額縁を選択　<kbd>Enter</kbd> 選択を確定`; paintWork(4); $("workBody").querySelectorAll("[data-frame]").forEach(b => { b.onmouseenter = () => $("workBody").querySelector(".work-photo").dataset.frame = b.dataset.frame; b.onclick = () => { const key = b.dataset.frame, rareGold = key === "gold" && ["rare", "masterpiece"].includes(mini.film.rarity), points = key === ideal || rareGold ? 10 : 7; mini.film.frameType = key; finishMini(resultFromPoints(points), points, { bonus: points === 10 ? 1.18 : 1.05 }); }; }); }
+
+  function showIntervention(i) { const st = state.stations[i]; if (!st.current) return; const texts = ["完璧な現像タイミングです", "湿度が安定しそうです", "スキャナーが月光を捉えています", "補正値が一致しそうです", "紙面に光が宿っています", "額縁が写真に応えています"]; $("intervention").hidden = false; $("interventionButton").querySelector("span").textContent = texts[i]; $("interventionButton").onclick = () => { if (st.current && !st.current.done) { st.current.points = 9; st.current.intervention = false; addMoon(8); log(`${STATION_DEFS[i].name}へ介入しました`, "perfect"); } $("intervention").hidden = true; }; setTimeout(() => { $("intervention").hidden = true; }, 4100); }
+  function showCompletion(film) { clearTimeout(completionTimer); const rare = ["rare", "masterpiece"].includes(film.rarity), moonEarned = Object.values(film.stationResults).reduce((n, r) => n + (r.automated ? 0 : RESULT[r.grade]?.[1] || 0), 0); $("completionCard").className = `completion-card rank-${film.qualityRank} ${rare ? "rare" : ""}`; $("completionBody").innerHTML = `<div class="complete-photo"><canvas width="64" height="48"></canvas></div><div class="complete-info"><p class="rarity-${film.rarity}">${RARITIES[film.rarity].label}</p><h2>${film.theme}</h2><div class="rank">品質 <strong>${film.qualityRank}</strong><span>${film.qualityScore} / 100</span></div><dl><dt>基本価格</dt><dd>${film.baseValue}</dd><dt>品質ボーナス</dt><dd>×${film.qualityMultiplier}</dd><dt>印画紙</dt><dd>${PAPERS[film.paperType]?.label || "標準"} ×${film.paperBonus}</dd><dt>額装</dt><dd>${FRAMES[film.frameType]?.label || "標準"} ×${film.frameBonus}</dd><dt>最終売上</dt><dd class="sale">${film.value}</dd><dt>月光獲得</dt><dd>+${moonEarned}</dd></dl><div class="station-grades">${STATION_DEFS.map(d => `<span>${d.name}<b>${film.stationResults[d.id]?.grade || "OK"}</b></span>`).join("")}</div><blockquote>「${film.reaction}」</blockquote></div>`; drawPhoto($("completionBody").querySelector("canvas"), film); $("completion").hidden = false; const delay = film.rarity === "masterpiece" && film.qualityRank === "S" ? 5500 : 3000; completionTimer = setTimeout(closeCompletion, delay); }
+  function closeCompletion() { clearTimeout(completionTimer); $("completion").hidden = true; }
+  function previewPhoto(p) { showModal(p.theme, `<canvas id="previewCanvas" class="preview-canvas" width="64" height="48"></canvas><p class="rarity-${p.rarity}">${RARITIES[p.rarity].label} ・ 品質${p.qualityRank} ・ 売値 ${p.value}</p><p>${PAPERS[p.paperType]?.label || "標準紙"} / ${FRAMES[p.frameType]?.label || "標準額"}</p><blockquote>「${p.reaction}」</blockquote>`); drawPhoto($("previewCanvas"), p); }
+  function showModal(title, html) { $("modalTitle").textContent = title; $("modalBody").innerHTML = html; $("modal").hidden = false; $("modalClose").focus(); }
   function closeModal() { $("modal").hidden = true; }
   function showMoney(amount) { const e = document.createElement("div"); e.className = "float-money"; e.textContent = `+${amount}`; $("toast").appendChild(e); setTimeout(() => e.remove(), 1900); }
-
   function save() { $("saveStatus").textContent = "保存中…"; try { state.lastSavedAt = Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(state)); setTimeout(() => $("saveStatus").textContent = "保存しました", 180); } catch (e) { $("saveStatus").textContent = "保存エラー"; } }
-  function load() {
-    try { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return; const data = JSON.parse(raw); state = Object.assign(initialState(), data); state.settings = Object.assign({ sound: false, reducedMotion: false }, data.settings); state.stations = STATION_DEFS.map((_, i) => Object.assign({ queue: [], current: null, automated: false, speedLevel: 0, capacityLevel: 0 }, data.stations[i]));
-      const ids = [...state.incomingQueue, ...state.stations.flatMap(s => [...s.queue, ...(s.current ? [s.current.film] : [])]), ...state.album].map(x => x.id || 0); nextFilmId = Math.max(0, ...ids) + 1; offlineProgress(Date.now() - (data.lastSavedAt || Date.now()));
-    } catch (e) { state = initialState(); log("セーブを読み込めなかったため、新しい夜を始めました"); }
-  }
-  function offlineProgress(elapsed) {
-    if (elapsed < 15000 || !state.stations.every(s => s.automated)) return; const capped = Math.min(elapsed, 7200000); const cycle = Math.max(...state.stations.map((_, i) => processDuration(i))); const count = Math.min(120, Math.floor(capped / cycle)); if (!count) return;
-    let earned = 0; for (let i = 0; i < count; i++) { const f = makeFilm(); earned += f.value; state.money += f.value; state.completedCount++; state.album.unshift({ id: f.id, theme: f.theme, rarity: f.rarity, seed: f.seed, value: f.value, firstObtainedAt: new Date().toISOString(), number: state.completedCount }); } state.album = state.album.slice(0, 50); setTimeout(() => showModal("留守の間の現像", `<p>留守の間に<strong>${count}枚</strong>の写真が完成し、売上<strong>${earned}</strong>を獲得しました。</p>`), 200);
-  }
-  function sound(type) { if (!state.settings.sound) return; audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)(); const osc = audioContext.createOscillator(), gain = audioContext.createGain(); osc.connect(gain); gain.connect(audioContext.destination); osc.type = "square"; osc.frequency.value = type === "rare" ? 740 : type === "complete" ? 520 : 180; gain.gain.setValueAtTime(.035, audioContext.currentTime); gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + .15); osc.start(); osc.stop(audioContext.currentTime + .16); }
+  function load() { try { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return; const data = JSON.parse(raw), base = initialState(); state = Object.assign(base, data); state.settings = Object.assign(base.settings, data.settings || {}); state.moonlightGauge = Number.isFinite(data.moonlightGauge) ? data.moonlightGauge : 0; state.logs = (data.logs || base.logs).map(x => typeof x === "string" ? { message: x, type: "info", at: data.lastSavedAt || Date.now() } : x); state.incomingQueue = (data.incomingQueue || []).map(migrateFilm); state.album = (data.album || []).map(migrateFilm); state.stations = STATION_DEFS.map((_, i) => { const old = data.stations?.[i] || {}; const st = Object.assign({ queue: [], current: null, automated: false, speedLevel: 0, capacityLevel: 0 }, old); st.queue = (st.queue || []).map(migrateFilm); if (st.current?.film) migrateFilm(st.current.film); return st; }); const ids = allFilms().map(x => x.id || 0); nextFilmId = Math.max(0, ...ids) + 1; offlineProgress(Date.now() - (data.lastSavedAt || Date.now())); } catch (e) { state = initialState(); log("セーブを読み込めなかったため、新しい夜を始めました", "alert"); } }
+  function offlineProgress(elapsed) { if (elapsed < 15000 || !state.stations.every(s => s.automated)) return; const count = Math.min(120, Math.floor(Math.min(elapsed, 7200000) / Math.max(...STATION_DEFS.map((_, i) => processDuration(i))))); let earned = 0; for (let i = 0; i < count; i++) { const f = makeFilm(); STATION_DEFS.forEach(d => f.stationResults[d.id] = { grade: "OK", points: 6, automated: true, bonus: 1 }); f.qualityScore = 76; f.paperType = "matte"; f.frameType = "black"; f.qualityRank = "B"; const base = Math.round(RARITIES[f.rarity].value * FILM_TYPES[f.filmType].mult); f.value = Math.round(base * 1.2); f.baseValue = base; f.qualityMultiplier = 1.2; f.paperBonus = f.frameBonus = 1; f.number = ++state.completedCount; f.firstObtainedAt = new Date().toISOString(); state.album.unshift(f); state.money += f.value; earned += f.value; } state.album = state.album.slice(0, 50); if (count) setTimeout(() => showModal("留守の間の現像", `<p>${count}枚が完成し、売上${earned}を獲得しました。</p>`), 200); }
+  function sound(type) { if (!state.settings.sound) return; audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)(); const o = audioContext.createOscillator(), g = audioContext.createGain(); o.connect(g); g.connect(audioContext.destination); o.type = "square"; o.frequency.value = type === "rare" ? 740 : type === "complete" ? 520 : 180; g.gain.setValueAtTime(.035, audioContext.currentTime); g.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + .15); o.start(); o.stop(audioContext.currentTime + .16); }
+  function tick() { const now = Date.now(); arrive(now); feedQueues(); updateStations(now); updateDynamic(now); if (dirty) { render(); dirty = false; } requestAnimationFrame(tick); }
+  function bind() { document.querySelectorAll(".tab").forEach(btn => btn.onclick = () => { document.querySelectorAll(".tab,.screen").forEach(x => x.classList.remove("active")); btn.classList.add("active"); $(btn.dataset.tab).classList.add("active"); if (btn.dataset.tab === "album") renderAlbum(); }); $("modalClose").onclick = closeModal; $("modal").onclick = e => { if (e.target.dataset.close) closeModal(); }; $("workClose").onclick = closeWork; $("completionClose").onclick = closeCompletion; $("completionCard").onclick = e => { if (!e.target.closest("button")) closeCompletion(); }; $("soundToggle").onchange = e => { state.settings.sound = e.target.checked; sound("button"); save(); }; $("motionToggle").onchange = e => { state.settings.reducedMotion = e.target.checked; dirty = true; save(); }; $("saveNow").onclick = save; $("resetSave").onclick = () => { if (confirm("セーブデータを削除し、最初から始めますか？\nこの操作は取り消せません。")) { localStorage.removeItem(SAVE_KEY); location.reload(); } }; document.addEventListener("keydown", e => { if (e.key === "Escape") { if (mini) closeWork(); else if (!$("completion").hidden) closeCompletion(); else closeModal(); return; } if (!$("completion").hidden && e.key === "Enter") return closeCompletion(); if (!$("modal").hidden) return; if (/^[1-6]$/.test(e.key) && !mini) { selected = +e.key - 1; dirty = true; } if (mini) { if (mini.i === 0 && e.code === "Space") { e.preventDefault(); $("mainAction")?.click(); } if (mini.i === 1 && ["ArrowLeft", "a", "A", "ArrowRight", "d", "D"].includes(e.key)) mini.wind = ["ArrowLeft", "a", "A"].includes(e.key) ? .25 : 1; if (mini.i === 3 && ["ArrowLeft", "a", "A", "ArrowRight", "d", "D"].includes(e.key)) { const input = $("brightness"); input.value = Math.max(0, Math.min(100, +input.value + (["ArrowLeft", "a", "A"].includes(e.key) ? -3 : 3))); input.dispatchEvent(new Event("input")); } if (e.key === "Enter") $("mainAction")?.click(); return; } if (e.code === "Space" && !["INPUT", "BUTTON"].includes(document.activeElement.tagName)) { e.preventDefault(); if (canOperate(selected)) openMinigame(selected); } }); }
 
-  function bind() {
-    $("workButton").addEventListener("click", () => startStation(selected, true));
-    document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => { document.querySelectorAll(".tab,.screen").forEach(x => x.classList.remove("active")); btn.classList.add("active"); $(btn.dataset.tab).classList.add("active"); if (btn.dataset.tab === "album") renderAlbum(); }));
-    $("modalClose").addEventListener("click", closeModal); $("modal").addEventListener("click", e => { if (e.target.dataset.close) closeModal(); });
-    $("soundToggle").addEventListener("change", e => { state.settings.sound = e.target.checked; sound("button"); save(); });
-    $("motionToggle").addEventListener("change", e => { state.settings.reducedMotion = e.target.checked; dirty = true; save(); });
-    $("saveNow").addEventListener("click", save); $("resetSave").addEventListener("click", () => { if (confirm("セーブデータを削除し、最初から始めますか？\nこの操作は取り消せません。")) { localStorage.removeItem(SAVE_KEY); location.reload(); } });
-    document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); if (!$("modal").hidden) return; if (/^[1-6]$/.test(e.key)) { selected = Number(e.key) - 1; dirty = true; } if (e.code === "Space" && !["INPUT", "BUTTON"].includes(document.activeElement.tagName)) { e.preventDefault(); startStation(selected, true); } });
-  }
   buildStations(); bind(); load(); $("soundToggle").checked = state.settings.sound; $("motionToggle").checked = state.settings.reducedMotion; render(); setInterval(save, 5000); requestAnimationFrame(tick);
 }());

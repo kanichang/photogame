@@ -11,7 +11,8 @@
     <div><h1>午前二時の現像所</h1><span class="subtitle">MIDNIGHT PHOTO LAB</span></div>
     <div class="stats" aria-live="polite">
       <span>夜の進行 <b id="nightClock">02:00</b></span><span>売上 <b id="money">20</b></span>
-      <span>完成 <b id="completed">0</b>枚</span><span>自動化 <b id="autoCount">0</b>/6</span><span id="saveStatus">未保存</span>
+      <span>完成 <b id="completed">0</b>枚</span><span>自動化 <b id="autoCount">0</b>/6</span>
+      <span class="moon-stat">☾ 月光 <b id="moonValue">0</b><i><em id="moonFill"></em></i></span><span id="fullMoonText"></span><span id="saveStatus">未保存</span>
     </div>
     <nav aria-label="画面切り替え"><button class="tab active" data-tab="lab">現像所</button><button class="tab" data-tab="album">アルバム</button><button class="tab" data-tab="settings">設定</button></nav>
   </header>
@@ -28,7 +29,7 @@
         </div>
         <aside class="sidebar">
           <section class="pixel-panel queue-panel"><h2>受付キュー <span id="queueCount">0 / 8</span></h2><div id="incomingQueue" class="film-list"></div><p id="nextArrival">次の来客を待っています…</p></section>
-          <section class="pixel-panel upgrade-panel"><h2 id="selectedTitle">現像槽</h2><p id="selectedState"></p><button id="workButton" class="primary">作業する <kbd>Space</kbd></button><div id="upgradeButtons"></div><p id="buyReason" aria-live="polite"></p></section>
+          <section class="pixel-panel upgrade-panel"><h2 id="selectedTitle">現像槽</h2><p id="selectedState"></p><p id="operationHelp" class="operation-help"></p><div id="upgradeButtons"></div><p id="buyReason" aria-live="polite"></p></section>
           <section class="pixel-panel recent-panel"><h2>最近の一枚</h2><div id="recentPhoto"><p>最初の写真を待っています。</p></div></section>
         </aside>
       </div>
@@ -41,7 +42,10 @@
   </main>
 
   <div id="toast" role="status" aria-live="polite"></div>
+  <div id="intervention" class="intervention" hidden><button id="interventionButton">☾ <span></span><small>クリックで介入</small></button></div>
   <div id="modal" class="modal" hidden><div class="modal-backdrop" data-close="true"></div><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button id="modalClose" aria-label="閉じる">×</button><h2 id="modalTitle"></h2><div id="modalBody"></div></div></div>
+  <div id="workOverlay" class="work-overlay" hidden><div class="work-backdrop"></div><section class="work-card" role="dialog" aria-modal="true" aria-labelledby="workTitle"><button id="workClose" aria-label="閉じる">×</button><header><span id="workStep"></span><h2 id="workTitle"></h2><p id="workStory"></p></header><div id="workBody"></div><footer id="workKeys"></footer></section></div>
+  <div id="completion" class="completion" hidden><div class="completion-backdrop"></div><section id="completionCard" class="completion-card" role="dialog" aria-modal="true"><button id="completionClose" aria-label="閉じる">×</button><div id="completionBody"></div><small>クリック / Enter で閉じる</small></section></div>
   <script src="game.js"></script>
 </body>
 </html>
