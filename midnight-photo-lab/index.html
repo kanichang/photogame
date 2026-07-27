@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>午前二時の現像所</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div><h1>午前二時の現像所</h1><span class="subtitle">MIDNIGHT PHOTO LAB</span></div>
+    <div class="stats" aria-live="polite">
+      <span>夜の進行 <b id="nightClock">02:00</b></span><span>売上 <b id="money">20</b></span>
+      <span>完成 <b id="completed">0</b>枚</span><span>自動化 <b id="autoCount">0</b>/6</span><span id="saveStatus">未保存</span>
+    </div>
+    <nav aria-label="画面切り替え"><button class="tab active" data-tab="lab">現像所</button><button class="tab" data-tab="album">アルバム</button><button class="tab" data-tab="settings">設定</button></nav>
+  </header>
+
+  <main>
+    <section id="lab" class="screen active">
+      <div class="lab-layout">
+        <div class="shop" aria-label="深夜の写真店">
+          <div class="window"><div class="moon"></div><div class="sky-streak"></div><div class="rain"></div><span class="window-label">雨はまだ、止まない。</span></div>
+          <div class="lamp lamp-a"></div><div class="lamp lamp-b"></div>
+          <div id="stations" class="stations"></div>
+          <div class="conveyor"><span>受付</span><div id="beltItems"></div><span>納品</span></div>
+          <div class="wall-photos" id="wallPhotos"></div>
+        </div>
+        <aside class="sidebar">
+          <section class="pixel-panel queue-panel"><h2>受付キュー <span id="queueCount">0 / 8</span></h2><div id="incomingQueue" class="film-list"></div><p id="nextArrival">次の来客を待っています…</p></section>
+          <section class="pixel-panel upgrade-panel"><h2 id="selectedTitle">現像槽</h2><p id="selectedState"></p><button id="workButton" class="primary">作業する <kbd>Space</kbd></button><div id="upgradeButtons"></div><p id="buyReason" aria-live="polite"></p></section>
+          <section class="pixel-panel recent-panel"><h2>最近の一枚</h2><div id="recentPhoto"><p>最初の写真を待っています。</p></div></section>
+        </aside>
+      </div>
+      <section class="log-panel"><h2>夜の記録</h2><ol id="eventLog" aria-live="polite"></ol></section>
+    </section>
+
+    <section id="album" class="screen"><div class="section-heading"><div><h2>夜のアルバム</h2><p>同じ夜は、二度と同じ色にはならない。</p></div><span id="albumCount">0 / 50</span></div><div id="albumGrid" class="album-grid"></div><p id="emptyAlbum" class="empty">完成した写真がここに並びます。</p></section>
+
+    <section id="settings" class="screen"><div class="settings-box"><h2>設定</h2><label class="toggle"><input id="soundToggle" type="checkbox"><span>効果音（初期設定はオフ）</span></label><label class="toggle"><input id="motionToggle" type="checkbox"><span>ゲーム内の動きを抑える</span></label><button id="saveNow">今すぐ保存</button><button id="resetSave" class="danger">セーブデータを削除して最初から始める</button><h3>ショートカット</h3><p><kbd>1</kbd>〜<kbd>6</kbd> 設備選択　<kbd>Space</kbd> 作業開始　<kbd>Esc</kbd> 閉じる</p></div></section>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="modal" class="modal" hidden><div class="modal-backdrop" data-close="true"></div><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button id="modalClose" aria-label="閉じる">×</button><h2 id="modalTitle"></h2><div id="modalBody"></div></div></div>
+  <script src="game.js"></script>
+</body>
+</html>
